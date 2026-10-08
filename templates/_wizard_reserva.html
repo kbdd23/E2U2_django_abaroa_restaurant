@@ -1,0 +1,54 @@
+<div class="drawer-overlay" id="drawer-overlay" hidden></div>
+<aside
+    class="drawer-reserva"
+    id="drawer-reserva"
+    data-url-bloques="{% url 'booking:bloques' %}"
+    aria-hidden="true"
+>
+    <div class="drawer-header">
+        <div>
+            <p class="drawer-eyebrow">Nueva reserva</p>
+            <h3 class="drawer-titulo" id="drawer-titulo">Elige una mesa</h3>
+        </div>
+        <button type="button" class="drawer-cerrar" id="drawer-cerrar" aria-label="Cerrar panel">×</button>
+    </div>
+
+    <div class="drawer-cuerpo">
+        <!-- Paso 1: fecha -->
+        <div class="drawer-paso" id="paso-fecha">
+            <h4>¿Para qué día?</h4>
+            <p class="aviso-fecha" id="aviso-fecha" hidden></p>
+            <div class="grupos-fecha" id="grupos-fecha"><!-- render JS --></div>
+            <div class="otro-dia">
+                <label for="fecha-otro-dia">Buscar otro día</label>
+                <input type="date" id="fecha-otro-dia" min="{% now 'Y-m-d' %}">
+                <p class="pista-fecha">El restaurante cierra los domingos.</p>
+            </div>
+        </div>
+
+        <!-- Paso 2: bloques -->
+        <div class="drawer-paso" id="paso-bloques" hidden>
+            <h4>Bloques disponibles <span class="fecha-elegida" id="fecha-elegida"></span><span class="badge-hoy" id="badge-hoy" hidden>HOY</span></h4>
+            <div class="resumen-mesa" id="resumen-mesa"></div>
+            <div class="grid-bloques" id="grid-bloques"><!-- render JS --></div>
+            <p class="pista-bloques" id="pista-bloques"></p>
+        </div>
+    </div>
+
+    <div class="drawer-pie">
+        <p class="drawer-resumen" id="drawer-resumen"></p>
+        <div class="drawer-acciones">
+            <button type="button" class="btn-volver" id="btn-volver" hidden>Cambiar día</button>
+            <button type="button" class="btn-reservar" id="btn-confirmar" disabled>Confirmar reserva</button>
+        </div>
+    </div>
+
+    <!-- El form real de Django, invisible: el JS rellena y hace submit -->
+    <form method="post" action="{% url 'booking:crear_reserva' %}" id="form-reserva-real" class="campos-ocultos">
+        {% csrf_token %}
+        <input type="hidden" name="mesa">
+        <input type="hidden" name="fecha">
+        <input type="hidden" name="hora_inicio">
+        <input type="hidden" name="hora_fin">
+    </form>
+</aside>

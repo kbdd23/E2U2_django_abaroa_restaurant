@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}Menú | Restaurante Abaroa{% endblock %}
+
+{% block content %}
+<section class="menu-section" id="menu">
+    <div class="menu-header">
+        <div>
+            <h2>Nuestro Menú</h2>
+            <p class="subtext">Explora las categorías y elige tus favoritos para pedir con rapidez.</p>
+        </div>
+        <form class="search-bar" role="search">
+            <label for="search" class="sr-only">Buscar platos</label>
+            <input id="search" type="search" placeholder="Buscar platos, bebidas o colaciones" />
+        </form>
+    </div>
+
+    <div class="menu-grid-layout">
+        <aside class="menu-filter" aria-labelledby="filtro-alergenos">
+            <h3 id="filtro-alergenos">Filtrar por categoría</h3>
+            <p>Selecciona las categorías que deseas ver.</p>
+            <form class="filter-form">
+                <label><input type="checkbox" name="categoria" value="todos" class="filter-categoria" checked> Todos</label>
+                {% for valor, etiqueta in categorias %}
+                    <label><input type="checkbox" name="categoria" value="{{ valor }}" class="filter-categoria"> {{ etiqueta }}</label>
+                {% endfor %}
+            </form>
+
+            <h3 style="margin-top: 20px;">Filtrar por alérgenos</h3>
+            <p>Selecciona los alérgenos que deseas evitar.</p>
+            <form class="filter-form">
+                {% for alergeno in alergenos %}
+                    <label><input type="checkbox" name="alergeno" value="{{ alergeno.slug }}" class="filter-alergeno"> {{ alergeno.nombre }}</label>
+                {% endfor %}
+            </form>
+        </aside>
+
+        <div class="platos-grid">
+            {% for item in items %}
+                <article class="plato" data-category="{{ item.categoria }}">
+                    <figure>
+                        <img src="{{ item.imagen }}" alt="{{ item.nombre }}">
+                        {% if item.badge %}<figcaption class="badge">{{ item.badge }}</figcaption>{% endif %}
+                    </figure>
+                    <div class="plato-content">
+                        <h3>{{ item.nombre }}</h3>
+                        <p>{{ item.descripcion }}</p>
+                        <div class="tags">
+                            <span>{{ item.get_categoria_display }}</span>
+                            {% for alergeno in item.alergenos.all %}
+                                <span data-alergeno="{{ alergeno.slug }}">{{ alergeno.nombre }}</span>
+                            {% endfor %}
+                        </div>
+                        <div class="plato-footer">
+                            <span class="precio">{{ item.precio_formateado }} CLP</span>
+                        </div>
+                    </div>
+                </article>
+            {% empty %}
+                <p class="sin-platos">La carta está vacía por ahora. Vuelve pronto.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

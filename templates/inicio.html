@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Inicio | Restaurante Abaroa{% endblock %}
+
+{% block content %}
+<section class="hero hero-carrusel" id="inicio">
+
+    <!-- Fondo: carrusel Bootstrap. Se muestra siempre, haya sesion o no. -->
+    <div class="hero-fondo">
+        <div id="carrusel-hero" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-inner">
+                <div class="carousel-item active">
+                    <img src="{% static 'img/img.jpg' %}" class="d-block w-100" alt="Restaurante Abaroa">
+                </div>
+                <div class="carousel-item">
+                    <img src="{% static 'img/img_1.jpg' %}" class="d-block w-100" alt="Restaurante Abaroa">
+                </div>
+                <div class="carousel-item">
+                    <img src="{% static 'img/img_2.jpg' %}" class="d-block w-100" alt="Restaurante Abaroa">
+                </div>
+                <div class="carousel-item">
+                    <img src="{% static 'img/img_3.jpg' %}" class="d-block w-100" alt="Restaurante Abaroa">
+                </div>
+            </div>
+        </div>
+        <div class="hero-velo"></div>
+    </div>
+
+    <div class="hero-contenido">
+        {% if user.is_authenticated %}
+            <div class="hero-copy">
+                <p class="eyebrow">Bienvenido a AbaroaService</p>
+                <h2>Estás logeado</h2>
+                {% if user.rol == 'mesero' %}
+                    <p>Hola, {{ user.first_name }}. Tu sesión está activa. Las mesas se atienden desde el salón: entra por ahí.</p>
+                {% elif user.rol == 'admin' %}
+                    <p>Hola, {{ user.first_name }}. Tu sesión está activa. La gestión del restaurante vive en el panel de administración.</p>
+                {% else %}
+                    <p>Hola, {{ user.first_name }}. Tu sesión está activa, puedes navegar por el menú y hacer reservas.</p>
+                {% endif %}
+            </div>
+            <div class="hero-acciones">
+                <!-- BOTONES EN HORIZONTAL -->
+                <div class="botones-fila">
+                    {% if user.rol == 'cliente' %}
+                        <a class="btn-reservar-gigante" href="{% url 'booking:crear_reserva' %}">Reservar</a>
+                    {% elif user.rol == 'mesero' %}
+                        <a class="btn-reservar-gigante" href="{% url 'mesero' %}">Salón</a>
+                    {% endif %}
+                    <a class="btn-menu-gigante" href="{% url 'menu' %}">MENÚ</a>
+                </div>
+                <!-- BOTÓN TRANSPARENTE ABAJO -->
+                <a class="btn-logout" href="{% url 'logout' %}">Cerrar sesión</a>
+            </div>
+        {% else %}
+            <div class="hero-copy">
+                <p class="eyebrow">Bienvenido a AbaroaService</p>
+                <h2>Tu restaurante favorito, ahora en línea</h2>
+                <p>Descubre nuestros deliciosos platos caseros, disfruta de colaciones y jugos naturales frescos. Regístrate hoy y comienza a disfrutar de nuestro servicio familiar con acceso a menú, reservas y promociones exclusivas.</p>
+            </div>
+            <div class="hero-acciones">
+                <!-- BOTONES EN HORIZONTAL -->
+                <div class="botones-fila">
+                    <a class="btn-reservar-gigante" href="{% url 'login' %}">Reservar</a>
+                    <a class="btn-menu-gigante" href="{% url 'menu' %}">MENÚ</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

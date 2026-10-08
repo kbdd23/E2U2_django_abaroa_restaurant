@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Reservar | Restaurante Abaroa{% endblock %}
+
+{% block content %}
+<section class="reservas-section salon-live">
+    <div class="section-header">
+        <h2>Reserva tu mesa</h2>
+        <p>Elige una mesa del salón. Reserva un bloque de 1 hora o encadena varios consecutivos — elige día y confirma.</p>
+    </div>
+
+    {% if messages %}
+        <ul class="mensajes">
+            {% for message in messages %}
+                <li class="mensaje {{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    {% if form.errors %}
+        <div class="mensaje error">
+            No se pudo confirmar la reserva:
+            {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+            Elige otro bloque e intenta de nuevo.
+        </div>
+    {% endif %}
+
+    <!-- Salon vivo: la grilla 4x2 sale del modelo, no del HTML -->
+    <div class="salon-view salon-vivo">
+        <div class="salon-toolbar">
+            <div class="leyenda-mesas">
+                <div class="leyenda-item">
+                    <div class="leyenda-color disponible"></div>
+                    <span>Mesa en servicio</span>
+                </div>
+                <div class="leyenda-item">
+                    <div class="leyenda-color reservando"></div>
+                    <span>Seleccionada</span>
+                </div>
+                <div class="leyenda-item">
+                    <div class="leyenda-color grande"></div>
+                    <span>Mesa grande</span>
+                </div>
+            </div>
+            <p class="horario-nota">Horario: Lunes a Viernes 08:00–16:00 · Sábado 09:00–15:00 · Domingo cerrado</p>
+        </div>
+
+        <div class="grid-mesas-salon" id="grilla-mesas">
+            {% for mesa in mesas %}
+                <button
+                    type="button"
+                    class="mesa-card {% if mesa.es_grande %}mesa-card-grande{% endif %}"
+                    data-mesa-id="{{ mesa.pk }}"
+                    data-mesa-numero="{{ mesa.numero }}"
+                    data-mesa-capacidad="{{ mesa.capacidad }}"
+                    data-mesa-ubicacion="{{ mesa.ubicacion }}"
+                    aria-label="Reservar mesa {{ mesa.numero }}"
+                >
+                    <span class="mesa-card-numero">Mesa {{ mesa.numero }}</span>
+                    {% if mesa.es_grande %}
+                        <span class="mesa-card-badge">Grande</span>
+                    {% endif %}
+                    <span class="mesa-card-meta">{{ mesa.capacidad }} personas · {{ mesa.ubicacion }}</span>
+                </button>
+            {% empty %}
+                <p class="sin-mesas">El salón está vacío por mantenimiento. Vuelve pronto.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <h3 class="tus-reservas-titulo">Tus reservas</h3>
+    <ul class="lista-reservas">
+        {% for reserva in reservas_usuario %}
+            <li class="reserva-fila">
+                <span>Mesa {{ reserva.mesa.numero }} · {{ reserva.fecha|date:"d/m/Y" }} · {{ reserva.hora_inicio|time:"H:i" }}–{{ reserva.hora_fin|time:"H:i" }}</span>
+                <span class="etiqueta-estado {{ reserva.estado }}">{{ reserva.get_estado_display }}</span>
+                {% if reserva.estado == 'confirmado' %}
+                    <form method="post" action="{% url 'booking:cancelar_reserva' reserva.pk %}" style="display:inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Cancelar</button>
+                    </form>
+                {% endif %}
+            </li>
+        {% empty %}
+            <li>Aún no tienes reservas.</li>
+        {% endfor %}
+    </ul>
+</section>
+
+{% include '_wizard_reserva.html' %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/reserva.js' %}" defer></script>
+{% endblock %}

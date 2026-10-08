@@ -1,0 +1,648 @@
+{% extends 'base.html' %}
+
+{% block title %}Administración | Restaurante Abaroa{% endblock %}
+
+{% block content %}
+<section class="panel-cliente">
+    <aside class="panel-lateral">
+        <p class="panel-eyebrow">Administración</p>
+        <h2 class="panel-titulo">{{ user.first_name|default:user.username }}</h2>
+        <nav class="panel-menu" aria-label="Secciones de administración">
+            <a class="panel-opcion {% if seccion == 'inicio' %}activa{% endif %}" href="{% url 'admin' %}">Inicio</a>
+            <a class="panel-opcion {% if seccion == 'platos' %}activa{% endif %}" href="{% url 'admin_platos' %}">Platos</a>
+            <a class="panel-opcion {% if seccion == 'alergenos' %}activa{% endif %}" href="{% url 'admin_alergenos' %}">Alérgenos</a>
+            <a class="panel-opcion {% if seccion == 'mesas' %}activa{% endif %}" href="{% url 'admin_mesas' %}">Mesas</a>
+            <a class="panel-opcion {% if seccion == 'meseros' %}activa{% endif %}" href="{% url 'admin_meseros' %}">Meseros</a>
+            <a class="panel-opcion {% if seccion == 'admins' %}activa{% endif %}" href="{% url 'admin_admins' %}">Admins</a>
+            <a class="panel-opcion {% if seccion == 'reservas' %}activa{% endif %}" href="{% url 'admin_reservas' %}">Reservas</a>
+            <a class="panel-opcion {% if seccion == 'clientes' %}activa{% endif %}" href="{% url 'admin_clientes' %}">Clientes</a>
+        </nav>
+        <a class="panel-salir" href="{% url 'logout' %}">Cerrar sesión</a>
+    </aside>
+
+    <div class="panel-contenido">
+        {% if messages %}
+            <ul class="mensajes">
+                {% for message in messages %}
+                    <li class="mensaje {{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {% if seccion == 'inicio' %}
+            <h2 class="panel-titulo-seccion">Resumen</h2>
+            <div class="grid-mesas-salon">
+                <div class="mesa-card">
+                    <span class="mesa-card-numero">{{ platos_activos }}/{{ total_platos }}</span>
+                    <span class="mesa-card-meta">Platos activos</span>
+                </div>
+                <div class="mesa-card">
+                    <span class="mesa-card-numero">{{ total_alergenos }}</span>
+                    <span class="mesa-card-meta">Alérgenos</span>
+                </div>
+                <div class="mesa-card">
+                    <span class="mesa-card-numero">{{ mesas_activas }}/{{ capacidad_salon }}</span>
+                    <span class="mesa-card-meta">Mesas activas</span>
+                </div>
+                <div class="mesa-card">
+                    <span class="mesa-card-numero">{{ total_meseros }}</span>
+                    <span class="mesa-card-meta">Meseros</span>
+                </div>
+                <div class="mesa-card">
+                    <span class="mesa-card-numero">{{ total_admins }}</span>
+                    <span class="mesa-card-meta">Administradores</span>
+                </div>
+                <div class="mesa-card">
+                    <span class="mesa-card-numero">{{ reservas_confirmadas }}</span>
+                    <span class="mesa-card-meta">Reservas confirmadas</span>
+                </div>
+            </div>
+
+        {% elif seccion == 'platos' %}
+            <h2 class="panel-titulo-seccion">Carta</h2>
+
+            {% if modo == 'crear' or modo == 'editar' %}
+                <h3>{{ modo|title }} plato</h3>
+                <form method="post" action="{% if modo == 'crear' %}{% url 'admin_plato_crear' %}{% else %}{% url 'admin_plato_editar' plato.pk %}{% endif %}">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit" class="btn-panel">Guardar</button>
+                    <a class="btn-panel" href="{% url 'admin_platos' %}">Volver</a>
+                </form>
+            {% else %}
+                <p class="panel-acciones">
+                    <a class="btn-panel" href="{% url 'admin_plato_crear' %}">Nuevo plato</a>
+                </p>
+            {% endif %}
+
+            <ul class="lista-panel">
+                {% for plato in platos %}
+                    <li class="item-panel">
+                        <div class="item-panel-datos">
+                            <span class="item-panel-titulo">{{ plato.nombre }} · {{ plato.precio_formateado }}</span>
+                            <span class="item-panel-meta">{{ plato.get_categoria_display }}{% if not plato.disponible %} · <strong>Retirado</strong>{% endif %}</span>
+                        </div>
+                        <div class="item-panel-datos">
+                            <a class="btn btn-sm btn-outline-secondary" href="{% url 'admin_plato_editar' plato.pk %}">Editar</a>
+                            {% if plato.disponible %}
+                                <form method="post" action="{% url 'admin_plato_retirar' plato.pk %}" style="display:inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Retirar</button>
+                                </form>
+                            {% else %}
+                                <form method="post" action="{% url 'admin_plato_reactivar' plato.pk %}" style="display:inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-success">Reactivar</button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </li>
+                {% empty %}
+                    <li class="panel-vacio">No hay platos en la carta.</li>
+                {% endfor %}
+            </ul>
+
+        {% elif seccion == 'alergenos' %}
+            <h2 class="panel-titulo-seccion">Alérgenos</h2>
+
+            <button type="button" id="btn-revelar-alergeno" class="btn-panel"{% if form_abierto %} style="display:none"{% endif %}>Crear alérgeno</button>
+
+            <form method="post" action="{% url 'admin_alergenos' %}" id="form-crear-alergeno"{% if not form_abierto %} style="display:none"{% endif %}>
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit" class="btn-panel">Guardar</button>
+            </form>
+
+            <ul class="lista-panel">
+                {% for alergeno in alergenos %}
+                    <li class="item-panel">
+                        <div class="item-panel-datos">
+                            <span class="item-panel-titulo">{{ alergeno.nombre }}</span>
+                            <span class="item-panel-meta">{{ alergeno.slug }}</span>
+                        </div>
+                        <form method="post" action="{% url 'admin_alergeno_eliminar' alergeno.pk %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
+                        </form>
+                    </li>
+                {% empty %}
+                    <li class="panel-vacio">No hay alérgenos.</li>
+                {% endfor %}
+            </ul>
+
+        {% elif seccion == 'mesas' %}
+            <h2 class="panel-titulo-seccion">{% if vista_retiradas %}Mesas retiradas{% else %}Mesas{% endif %}</h2>
+            <p class="panel-contador">{% if vista_retiradas %}Retiradas: {{ total_retiradas }}{% else %}Activas: {{ mesas_activas }}/{{ capacidad_salon }}{% endif %}</p>
+
+            {% if modo == 'crear' %}
+                <h3>Crear mesa</h3>
+                <form method="post" action="{% url 'admin_mesa_crear' %}">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit" class="btn-panel">Guardar</button>
+                    <a class="btn-panel" href="{% url 'admin_mesas' %}">Volver</a>
+                </form>
+            {% else %}
+                <p class="panel-acciones">
+                    <a class="btn-panel" href="{% url 'admin_mesa_crear' %}">Nueva mesa</a>
+                    {% if vista_retiradas %}
+                        <a class="btn-panel" href="{% url 'admin_mesas' %}">Mesas activas</a>
+                    {% else %}
+                        <a class="btn-panel" href="{% url 'admin_mesas_retiradas' %}">Mesas retiradas ({{ total_retiradas }})</a>
+                        <button type="button" id="btn-revelar-redimensionar" class="btn-panel">Redimensionar</button>
+                    {% endif %}
+                </p>
+                {% if not vista_retiradas %}
+                    <form method="post" action="{% url 'admin_mesas_redimensionar' %}" id="form-redimensionar" style="display:none">
+                        {% csrf_token %}
+                        <input type="number" name="capacidad" min="1" value="{{ capacidad_salon }}" aria-label="Nueva capacidad del salón">
+                        <button type="submit" class="btn-panel">Aplicar</button>
+                    </form>
+                {% endif %}
+            {% endif %}
+
+            <div class="grid-mesas-salon">
+                {% for entrada in entradas %}
+                    <button type="button" class="mesa-card mesa-click"
+                        data-mesa-numero="{{ entrada.mesa.numero }}"
+                        data-mesa-capacidad="{{ entrada.mesa.capacidad }}"
+                        data-mesa-ubicacion="{{ entrada.mesa.ubicacion }}"
+                        data-mesa-grande="{{ entrada.mesa.es_grande|yesno:'true,false' }}"
+                        data-mesa-reservas="{{ entrada.total_reservas }}"
+                        data-mesa-pendientes="{{ entrada.reservas_pendientes }}"
+                        data-mesa-activa="{{ entrada.mesa.activa|yesno:'true,false' }}"
+                        data-url-mover="{% url 'admin_mesa_mover' entrada.mesa.pk %}"
+                        {% if entrada.mesa.activa and entrada.reservas_pendientes == 0 %}data-url-retirar="{% url 'admin_mesa_retirar' entrada.mesa.pk %}"{% endif %}
+                        {% if not entrada.mesa.activa %}data-url-reactivar="{% url 'admin_mesa_reactivar' entrada.mesa.pk %}"{% endif %}
+                        {% if entrada.total_reservas == 0 %}data-url-borrar="{% url 'admin_mesa_borrar' entrada.mesa.pk %}"{% endif %}
+                    >
+                        <span class="mesa-card-numero">Mesa {{ entrada.mesa.numero }}</span>
+                        {% if entrada.mesa.es_grande %}<span class="mesa-card-badge">Grande</span>{% endif %}
+                        {% if not entrada.mesa.activa %}<span class="mesa-card-badge">Retirada</span>{% endif %}
+                        <span class="mesa-card-meta">{{ entrada.mesa.capacidad }} personas · {{ entrada.mesa.ubicacion }}</span>
+                        <span class="mesa-card-meta">{{ entrada.total_reservas }} reservas · {{ entrada.reservas_pendientes }} pendientes</span>
+                    </button>
+                {% empty %}
+                    <p class="sin-mesas">{% if vista_retiradas %}No hay mesas retiradas.{% else %}No hay mesas en el salón. Crea la primera.{% endif %}</p>
+                {% endfor %}
+            </div>
+
+            <div class="drawer-overlay" id="drawer-mesa-overlay" hidden></div>
+            <aside class="drawer-reserva" id="drawer-mesa" aria-hidden="true">
+                <div class="drawer-header">
+                    <div>
+                        <p class="drawer-eyebrow">Mesa</p>
+                        <h3 class="drawer-titulo" id="drawer-mesa-titulo">—</h3>
+                    </div>
+                    <button type="button" class="drawer-cerrar" id="drawer-mesa-cerrar" aria-label="Cerrar panel">×</button>
+                </div>
+                <div class="drawer-cuerpo" id="drawer-mesa-cuerpo"><!-- JS --></div>
+                <div class="drawer-pie">
+                    <div class="drawer-acciones" id="drawer-mesa-acciones"><!-- JS --></div>
+                </div>
+            </aside>
+
+        {% elif seccion == 'meseros' %}
+            <h2 class="panel-titulo-seccion">Meseros</h2>
+
+            {% if modo == 'crear' %}
+                <h3>Crear mesero</h3>
+                <form method="post" action="{% url 'admin_mesero_crear' %}">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit" class="btn-panel">Guardar</button>
+                    <a class="btn-panel" href="{% url 'admin_meseros' %}">Volver</a>
+                </form>
+            {% else %}
+                <p class="panel-acciones">
+                    <a class="btn-panel" href="{% url 'admin_mesero_crear' %}">Nuevo mesero</a>
+                </p>
+            {% endif %}
+
+            <ul class="lista-panel">
+                {% for mesero in meseros %}
+                    <li class="item-panel">
+                        <div class="item-panel-datos">
+                            <span class="item-panel-titulo">{{ mesero.first_name|default:mesero.username }}</span>
+                            <span class="item-panel-meta">{{ mesero.email }}</span>
+                        </div>
+                    </li>
+                {% empty %}
+                    <li class="panel-vacio">No hay meseros registrados.</li>
+                {% endfor %}
+            </ul>
+
+        {% elif seccion == 'admins' %}
+            <h2 class="panel-titulo-seccion">Administradores</h2>
+
+            {% if modo == 'crear' %}
+                <h3>Crear administrador</h3>
+                <form method="post" action="{% url 'admin_admin_crear' %}">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit" class="btn-panel">Guardar</button>
+                    <a class="btn-panel" href="{% url 'admin_admins' %}">Volver</a>
+                </form>
+            {% else %}
+                <p class="panel-acciones">
+                    <a class="btn-panel" href="{% url 'admin_admin_crear' %}">Nuevo administrador</a>
+                </p>
+            {% endif %}
+
+            <ul class="lista-panel">
+                {% for administrador in admins %}
+                    <li class="item-panel">
+                        <div class="item-panel-datos">
+                            <span class="item-panel-titulo">{{ administrador.first_name|default:administrador.username }}</span>
+                            <span class="item-panel-meta">{{ administrador.email }}</span>
+                        </div>
+                    </li>
+                {% empty %}
+                    <li class="panel-vacio">No hay administradores registrados.</li>
+                {% endfor %}
+            </ul>
+
+        {% elif seccion == 'reservas' %}
+            <h2 class="panel-titulo-seccion">Reservas</h2>
+            <ul class="lista-panel">
+                {% for reserva in reservas %}
+                    <li class="item-panel">
+                        <div class="item-panel-datos">
+                            <span class="item-panel-titulo">Mesa {{ reserva.mesa.numero }} · {{ reserva.nombre_cliente }}</span>
+                            <span class="item-panel-meta">{{ reserva.fecha|date:"d/m/Y" }} · {{ reserva.hora_inicio|time:"H:i" }}–{{ reserva.hora_fin|time:"H:i" }}{% if reserva.creada_por %} · sentado por {{ reserva.creada_por.first_name|default:reserva.creada_por.username }}{% endif %}</span>
+                        </div>
+                        <span class="etiqueta-estado {{ reserva.estado }}">{{ reserva.get_estado_display }}</span>
+                        {% if reserva.estado == 'confirmado' %}
+                            <form method="post" action="{% url 'admin_reserva_cancelar' reserva.pk %}" style="display:inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Cancelar</button>
+                            </form>
+                        {% endif %}
+                    </li>
+                {% empty %}
+                    <li class="panel-vacio">No hay reservas.</li>
+                {% endfor %}
+            </ul>
+
+        {% elif seccion == 'clientes' %}
+            <h2 class="panel-titulo-seccion">{% if vista_desactivados %}Usuarios desactivados{% else %}Clientes{% endif %}</h2>
+            <p class="panel-contador">{% if vista_desactivados %}Desactivados: {{ total_desactivados }}{% else %}Activos: {{ total_activos }}{% endif %}</p>
+
+            <p class="panel-acciones">
+                {% if vista_desactivados %}
+                    <a class="btn-panel" href="{% url 'admin_clientes' %}">Clientes activos</a>
+                {% else %}
+                    <a class="btn-panel" href="{% url 'admin_clientes_desactivados' %}">Usuarios desactivados ({{ total_desactivados }})</a>
+                {% endif %}
+            </p>
+
+            <div class="lista-panel">
+                {% for entrada in clientes %}
+                    <button type="button" class="item-panel cliente-click" style="border:none; background:none; text-align:left; width:100%; cursor:pointer"
+                        data-cliente-nombre="{{ entrada.cliente.first_name|default:entrada.cliente.username }}"
+                        data-cliente-first-name="{{ entrada.cliente.first_name }}"
+                        data-cliente-email="{{ entrada.cliente.email }}"
+                        data-cliente-telefono="{{ entrada.cliente.telefono|default:'' }}"
+                        data-cliente-reservas="{{ entrada.total_reservas }}"
+                        data-cliente-pendientes="{{ entrada.reservas_pendientes }}"
+                        data-cliente-activo="{{ entrada.cliente.is_active|yesno:'true,false' }}"
+                        data-url-editar="{% url 'admin_cliente_editar' entrada.cliente.pk %}"
+                        {% if entrada.cliente.is_active %}data-url-desactivar="{% url 'admin_cliente_desactivar' entrada.cliente.pk %}"{% endif %}
+                        {% if not entrada.cliente.is_active %}data-url-activar="{% url 'admin_cliente_activar' entrada.cliente.pk %}"{% endif %}
+                    >
+                        <div class="item-panel-datos">
+                            <span class="item-panel-titulo">{{ entrada.cliente.first_name|default:entrada.cliente.username }}</span>
+                            <span class="item-panel-meta">{{ entrada.cliente.email }}{% if entrada.cliente.telefono %} · {{ entrada.cliente.telefono }}{% endif %}</span>
+                        </div>
+                        <span class="mesa-card-meta">{{ entrada.total_reservas }} reservas · {{ entrada.reservas_pendientes }} pendientes{% if not entrada.cliente.is_active %} · Inactivo{% endif %}</span>
+                    </button>
+                {% empty %}
+                    <p class="panel-vacio">{% if vista_desactivados %}No hay usuarios desactivados.{% else %}No hay clientes activos.{% endif %}</p>
+                {% endfor %}
+            </div>
+
+            <div class="drawer-overlay" id="drawer-cliente-overlay" hidden></div>
+            <aside class="drawer-reserva" id="drawer-cliente" aria-hidden="true">
+                <div class="drawer-header">
+                    <div>
+                        <p class="drawer-eyebrow">Cliente</p>
+                        <h3 class="drawer-titulo" id="drawer-cliente-titulo">—</h3>
+                    </div>
+                    <button type="button" class="drawer-cerrar" id="drawer-cliente-cerrar" aria-label="Cerrar panel">×</button>
+                </div>
+                <div class="drawer-cuerpo" id="drawer-cliente-cuerpo"><!-- JS --></div>
+                <div class="drawer-pie">
+                    <div class="drawer-acciones" id="drawer-cliente-acciones"><!-- JS --></div>
+                </div>
+            </aside>
+
+            <!-- Confirmacion en dos pasos para desactivar un cliente con reservas pendientes -->
+            <div class="modal-overlay" id="modal-cliente-overlay" hidden></div>
+            <div class="modal-caja" id="modal-cliente" role="dialog" aria-modal="true" aria-hidden="true">
+                <h3 class="modal-titulo" id="modal-cliente-titulo">—</h3>
+                <p class="modal-texto" id="modal-cliente-texto"></p>
+                <div class="modal-campo" id="modal-cliente-campo" hidden>
+                    <input type="text" id="modal-cliente-input" placeholder="DESACTIVAR" autocomplete="off" spellcheck="false">
+                </div>
+                <div class="modal-acciones">
+                    <button type="button" class="btn-panel" id="modal-cliente-cancelar">Cancelar</button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" id="modal-cliente-confirmar">Continuar</button>
+                </div>
+            </div>
+            <form method="post" id="form-desactivar-cliente" hidden>{% csrf_token %}</form>
+        {% endif %}
+    </div>
+</section>
+
+<script>
+    (function () {
+        var csrfToken = '{{ csrf_token }}';
+
+        // Toggle del form de alérgenos
+        var botonRevelar = document.getElementById('btn-revelar-alergeno');
+        var formularioCrear = document.getElementById('form-crear-alergeno');
+        if (botonRevelar && formularioCrear) {
+            botonRevelar.addEventListener('click', function () {
+                botonRevelar.style.display = 'none';
+                formularioCrear.style.display = 'block';
+            });
+        }
+
+        // Toggle del form de redimensionar
+        var botonRedimensionar = document.getElementById('btn-revelar-redimensionar');
+        var formRedimensionar = document.getElementById('form-redimensionar');
+        if (botonRedimensionar && formRedimensionar) {
+            botonRedimensionar.addEventListener('click', function () {
+                botonRedimensionar.style.display = 'none';
+                formRedimensionar.style.display = 'block';
+            });
+        }
+
+        // Drawer de mesas
+        var overlayMesa = document.getElementById('drawer-mesa-overlay');
+        var drawerMesa = document.getElementById('drawer-mesa');
+        var tituloMesa = document.getElementById('drawer-mesa-titulo');
+        var cuerpoMesa = document.getElementById('drawer-mesa-cuerpo');
+        var accionesMesa = document.getElementById('drawer-mesa-acciones');
+        var cerrarMesa = document.getElementById('drawer-mesa-cerrar');
+
+        function abrirDrawerMesa(tarjeta) {
+            var datos = tarjeta.dataset;
+
+            tituloMesa.textContent = 'Mesa ' + datos.mesaNumero;
+
+            cuerpoMesa.innerHTML =
+                '<p><strong>Capacidad:</strong> ' + datos.mesaCapacidad + ' personas</p>' +
+                '<p><strong>Ubicación:</strong> ' + datos.mesaUbicacion + '</p>' +
+                '<p><strong>Grande:</strong> ' + (datos.mesaGrande === 'true' ? 'Sí' : 'No') + '</p>' +
+                '<p><strong>Reservas:</strong> ' + datos.mesaReservas +
+                    ' · <strong>Pendientes:</strong> ' + datos.mesaPendientes + '</p>';
+
+            var htmlAcciones = '';
+            if (datos.urlMover) {
+                htmlAcciones +=
+                    '<form method="post" action="' + datos.urlMover + '">' +
+                    '<input type="hidden" name="csrfmiddlewaretoken" value="' + csrfToken + '">' +
+                    '<input type="text" name="ubicacion" value="' + datos.mesaUbicacion + '" placeholder="Nueva ubicación">' +
+                    '<button type="submit" class="btn-panel">Mover</button>' +
+                    '</form>';
+            }
+            if (datos.urlRetirar) {
+                htmlAcciones +=
+                    '<form method="post" action="' + datos.urlRetirar + '">' +
+                    '<input type="hidden" name="csrfmiddlewaretoken" value="' + csrfToken + '">' +
+                    '<button type="submit" class="btn btn-sm btn-outline-danger">Retirar mesa</button>' +
+                    '</form>';
+            } else if (datos.mesaActiva === 'true') {
+                // Mesa activa sin boton de retirar: la bloquean sus reservas.
+                htmlAcciones +=
+                    '<p class="aviso-bloqueo">No se puede retirar: tiene reservas pendientes.</p>';
+            }
+            if (datos.urlReactivar) {
+                htmlAcciones +=
+                    '<form method="post" action="' + datos.urlReactivar + '">' +
+                    '<input type="hidden" name="csrfmiddlewaretoken" value="' + csrfToken + '">' +
+                    '<button type="submit" class="btn btn-sm btn-outline-success">Reactivar mesa</button>' +
+                    '</form>';
+            }
+            if (datos.urlBorrar) {
+                htmlAcciones +=
+                    '<form method="post" action="' + datos.urlBorrar + '">' +
+                    '<input type="hidden" name="csrfmiddlewaretoken" value="' + csrfToken + '">' +
+                    '<button type="submit" class="btn btn-sm btn-outline-danger">Borrar mesa</button>' +
+                    '</form>';
+            }
+            accionesMesa.innerHTML = htmlAcciones;
+
+            overlayMesa.hidden = false;
+            overlayMesa.classList.add('visible');
+            drawerMesa.classList.add('abierto');
+            drawerMesa.setAttribute('aria-hidden', 'false');
+        }
+
+        function cerrarDrawerMesa() {
+            drawerMesa.classList.remove('abierto');
+            overlayMesa.classList.remove('visible');
+            drawerMesa.setAttribute('aria-hidden', 'true');
+            setTimeout(function () {
+                overlayMesa.hidden = true;
+            }, 320);
+        }
+
+        document.querySelectorAll('.mesa-click').forEach(function (tarjeta) {
+            tarjeta.addEventListener('click', function () {
+                abrirDrawerMesa(tarjeta);
+            });
+        });
+
+        if (cerrarMesa) {
+            cerrarMesa.addEventListener('click', cerrarDrawerMesa);
+        }
+        if (overlayMesa) {
+            overlayMesa.addEventListener('click', cerrarDrawerMesa);
+        }
+
+        // Drawer de clientes
+        var overlayCliente = document.getElementById('drawer-cliente-overlay');
+        var drawerCliente = document.getElementById('drawer-cliente');
+        var tituloCliente = document.getElementById('drawer-cliente-titulo');
+        var cuerpoCliente = document.getElementById('drawer-cliente-cuerpo');
+        var accionesCliente = document.getElementById('drawer-cliente-acciones');
+        var cerrarCliente = document.getElementById('drawer-cliente-cerrar');
+
+        function abrirDrawerCliente(tarjeta) {
+            var datos = tarjeta.dataset;
+
+            tituloCliente.textContent = datos.clienteNombre;
+
+            cuerpoCliente.innerHTML =
+                '<p><strong>Email:</strong> ' + datos.clienteEmail + '</p>' +
+                '<p><strong>Teléfono:</strong> ' + (datos.clienteTelefono || '—') + '</p>' +
+                '<p><strong>Reservas totales:</strong> ' + datos.clienteReservas + '</p>' +
+                '<p><strong>Estado:</strong> ' + (datos.clienteActivo === 'true' ? 'Activo' : 'Inactivo') + '</p>';
+
+            var htmlAcciones = '';
+            htmlAcciones +=
+                '<form method="post" action="' + datos.urlEditar + '">' +
+                '<input type="hidden" name="csrfmiddlewaretoken" value="' + csrfToken + '">' +
+                '<input type="text" name="first_name" value="' + datos.clienteFirstName + '" placeholder="Nombre">' +
+                '<input type="text" name="telefono" value="' + datos.clienteTelefono + '" placeholder="Teléfono">' +
+                '<button type="submit" class="btn-panel">Guardar</button>' +
+                '</form>';
+            if (datos.urlDesactivar) {
+                // Boton, no form: si el cliente tiene reservas pendientes, el
+                // modal pide confirmacion antes de disparar el POST.
+                htmlAcciones +=
+                    '<button type="button" class="btn btn-sm btn-outline-danger js-desactivar-cliente"' +
+                    ' data-url="' + datos.urlDesactivar + '"' +
+                    ' data-nombre="' + datos.clienteNombre + '"' +
+                    ' data-pendientes="' + datos.clientePendientes + '">Desactivar cliente</button>';
+            }
+            if (datos.urlActivar) {
+                htmlAcciones +=
+                    '<form method="post" action="' + datos.urlActivar + '">' +
+                    '<input type="hidden" name="csrfmiddlewaretoken" value="' + csrfToken + '">' +
+                    '<button type="submit" class="btn btn-sm btn-outline-success">Reactivar cliente</button>' +
+                    '</form>';
+            }
+            accionesCliente.innerHTML = htmlAcciones;
+
+            overlayCliente.hidden = false;
+            overlayCliente.classList.add('visible');
+            drawerCliente.classList.add('abierto');
+            drawerCliente.setAttribute('aria-hidden', 'false');
+        }
+
+        function cerrarDrawerCliente() {
+            drawerCliente.classList.remove('abierto');
+            overlayCliente.classList.remove('visible');
+            drawerCliente.setAttribute('aria-hidden', 'true');
+            setTimeout(function () {
+                overlayCliente.hidden = true;
+            }, 320);
+        }
+
+        document.querySelectorAll('.cliente-click').forEach(function (tarjeta) {
+            tarjeta.addEventListener('click', function () {
+                abrirDrawerCliente(tarjeta);
+            });
+        });
+
+        if (cerrarCliente) {
+            cerrarCliente.addEventListener('click', cerrarDrawerCliente);
+        }
+        if (overlayCliente) {
+            overlayCliente.addEventListener('click', cerrarDrawerCliente);
+        }
+
+        // Desactivar un cliente cancela sus reservas pendientes, asi que se
+        // confirma en dos pasos y el segundo exige la palabra exacta.
+        var PALABRA_DESACTIVAR = 'DESACTIVAR';
+        var overlayModal = document.getElementById('modal-cliente-overlay');
+        var modalCliente = document.getElementById('modal-cliente');
+        var modalTitulo = document.getElementById('modal-cliente-titulo');
+        var modalTexto = document.getElementById('modal-cliente-texto');
+        var modalCampo = document.getElementById('modal-cliente-campo');
+        var modalInput = document.getElementById('modal-cliente-input');
+        var modalCancelar = document.getElementById('modal-cliente-cancelar');
+        var modalConfirmar = document.getElementById('modal-cliente-confirmar');
+        var formDesactivar = document.getElementById('form-desactivar-cliente');
+        var desactivarPendiente = null;
+
+        function abrirModalCliente(url, nombre, pendientes) {
+            desactivarPendiente = { url: url, nombre: nombre, pendientes: pendientes, paso: 1 };
+            modalTitulo.textContent = '¿Desactivar a ' + nombre + '?';
+            if (pendientes > 0) {
+                modalTexto.textContent =
+                    'Tiene ' + pendientes + ' reservas pendientes. Al desactivarlo se cancelarán todas.';
+                modalConfirmar.textContent = 'Continuar';
+            } else {
+                modalTexto.textContent = 'El cliente quedará inactivo y no podrá iniciar sesión.';
+                modalConfirmar.textContent = 'Desactivar';
+            }
+            modalCampo.hidden = true;
+            modalInput.value = '';
+            modalConfirmar.disabled = false;
+            overlayModal.hidden = false;
+            overlayModal.classList.add('visible');
+            modalCliente.classList.add('abierto');
+            modalCliente.setAttribute('aria-hidden', 'false');
+        }
+
+        function cerrarModalCliente() {
+            modalCliente.classList.remove('abierto');
+            overlayModal.classList.remove('visible');
+            modalCliente.setAttribute('aria-hidden', 'true');
+            setTimeout(function () {
+                overlayModal.hidden = true;
+            }, 250);
+            desactivarPendiente = null;
+        }
+
+        function enviarDesactivar(url) {
+            formDesactivar.action = url;
+            formDesactivar.submit();
+        }
+
+        function confirmarModalCliente() {
+            if (!desactivarPendiente) {
+                return;
+            }
+            if (desactivarPendiente.paso === 1) {
+                if (desactivarPendiente.pendientes === 0) {
+                    // Sin reservas pendientes: la pregunta simple alcanza.
+                    enviarDesactivar(desactivarPendiente.url);
+                    return;
+                }
+                desactivarPendiente.paso = 2;
+                modalTitulo.textContent = 'Confirma la desactivación';
+                modalTexto.textContent =
+                    'Se cancelarán las ' + desactivarPendiente.pendientes +
+                    ' reservas pendientes de ' + desactivarPendiente.nombre +
+                    '. Escribe ' + PALABRA_DESACTIVAR + ' para continuar.';
+                modalCampo.hidden = false;
+                modalInput.value = '';
+                modalInput.focus();
+                modalConfirmar.textContent = 'Desactivar';
+                modalConfirmar.disabled = true;
+                return;
+            }
+            if (modalInput.value.trim().toUpperCase() === PALABRA_DESACTIVAR) {
+                enviarDesactivar(desactivarPendiente.url);
+            }
+        }
+
+        if (accionesCliente) {
+            accionesCliente.addEventListener('click', function (evento) {
+                var boton = evento.target.closest('.js-desactivar-cliente');
+                if (!boton) {
+                    return;
+                }
+                // Siempre se pregunta: la palabra extra solo aparece si hay
+                // reservas pendientes que cancelar.
+                abrirModalCliente(
+                    boton.dataset.url,
+                    boton.dataset.nombre,
+                    Number(boton.dataset.pendientes || 0)
+                );
+            });
+        }
+
+        if (modalInput) {
+            modalInput.addEventListener('input', function () {
+                modalConfirmar.disabled =
+                    modalInput.value.trim().toUpperCase() !== PALABRA_DESACTIVAR;
+            });
+        }
+        if (modalCancelar) {
+            modalCancelar.addEventListener('click', cerrarModalCliente);
+        }
+        if (overlayModal) {
+            overlayModal.addEventListener('click', cerrarModalCliente);
+        }
+        if (modalConfirmar) {
+            modalConfirmar.addEventListener('click', confirmarModalCliente);
+        }
+    })();
+</script>
+{% endblock %}

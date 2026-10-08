@@ -1,0 +1,123 @@
+{% extends 'perfil_base.html' %}
+{% load static %}
+
+{% block contenido_panel %}
+
+{% if tab == 'inicio' %}
+
+    <h2 class="panel-titulo-seccion">Próximas reservas</h2>
+    <p class="panel-nota">Tus reservas confirmadas de hoy en adelante.</p>
+
+    <ul class="lista-panel">
+        {% for reserva in proximas_reservas %}
+            <li class="item-panel">
+                <div class="item-panel-datos">
+                    <span class="item-panel-titulo">Mesa {{ reserva.mesa.numero }}</span>
+                    <span class="item-panel-meta">
+                        {{ reserva.fecha|date:"d/m/Y" }} · {{ reserva.hora_inicio|time:"H:i" }}–{{ reserva.hora_fin|time:"H:i" }} · {{ reserva.mesa.capacidad }} personas · {{ reserva.mesa.ubicacion }}
+                    </span>
+                </div>
+                <span class="etiqueta-estado {{ reserva.estado }}">{{ reserva.get_estado_display }}</span>
+                <form method="post" action="{% url 'booking:cancelar_reserva' reserva.pk %}" style="display:inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-danger">Cancelar</button>
+                </form>
+            </li>
+        {% empty %}
+            <li class="panel-vacio">No tienes reservas próximas. Ve al tab Reservar para crear una.</li>
+        {% endfor %}
+    </ul>
+
+{% elif tab == 'reservar' %}
+
+    <h2 class="panel-titulo-seccion">Mesas del salón</h2>
+    <p class="panel-nota">Elige una mesa para ver su disponibilidad y reservar.</p>
+
+    <div class="grid-mesas-salon" id="grilla-mesas">
+        {% for mesa in mesas %}
+            <button
+                type="button"
+                class="mesa-card {% if mesa.es_grande %}mesa-card-grande{% endif %}"
+                data-mesa-id="{{ mesa.pk }}"
+                data-mesa-numero="{{ mesa.numero }}"
+                data-mesa-capacidad="{{ mesa.capacidad }}"
+                data-mesa-ubicacion="{{ mesa.ubicacion }}"
+                aria-label="Reservar mesa {{ mesa.numero }}"
+            >
+                <span class="mesa-card-numero">Mesa {{ mesa.numero }}</span>
+                {% if mesa.es_grande %}
+                    <span class="mesa-card-badge">Grande</span>
+                {% endif %}
+                <span class="mesa-card-meta">{{ mesa.capacidad }} personas · {{ mesa.ubicacion }}</span>
+            </button>
+        {% empty %}
+            <p class="sin-mesas">El salón está vacío por mantenimiento. Vuelve pronto.</p>
+        {% endfor %}
+    </div>
+
+    {% include '_wizard_reserva.html' %}
+    <script src="{% static 'js/reserva.js' %}" defer></script>
+
+{% elif tab == 'historial' %}
+
+    <h2 class="panel-titulo-seccion">Historial</h2>
+    <p class="panel-nota">Tus reservas canceladas y las confirmadas que ya pasaron.</p>
+
+    <ul class="lista-panel">
+        {% for reserva in historial %}
+            <li class="item-panel">
+                <div class="item-panel-datos">
+                    <span class="item-panel-titulo">Mesa {{ reserva.mesa.numero }}</span>
+                    <span class="item-panel-meta">
+                        {{ reserva.fecha|date:"d/m/Y" }} · {{ reserva.hora_inicio|time:"H:i" }}–{{ reserva.hora_fin|time:"H:i" }} · {{ reserva.mesa.ubicacion }}
+                    </span>
+                </div>
+                <span class="etiqueta-estado {{ reserva.estado }}">{{ reserva.get_estado_display }}</span>
+            </li>
+        {% empty %}
+            <li class="panel-vacio">Todavía no tienes historial.</li>
+        {% endfor %}
+    </ul>
+
+{% elif tab == 'perfil' %}
+
+    <h2 class="panel-titulo-seccion">Mis datos</h2>
+    <p class="panel-nota">Puedes actualizar tu nombre y tu teléfono.</p>
+
+    {% if messages %}
+        <ul class="mensajes">
+            {% for message in messages %}
+                <li class="mensaje {{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <div class="tarjeta-perfil">
+        <dl>
+            <dt>Nombre</dt>
+            <dd>{{ user.first_name|default:"—" }}</dd>
+            <dt>Correo</dt>
+            <dd>{{ user.email|default:"—" }}</dd>
+            <dt>Teléfono</dt>
+            <dd>{{ user.telefono|default:"—" }}</dd>
+            <dt>Miembro desde</dt>
+            <dd>{{ user.date_joined|date:"d/m/Y" }}</dd>
+        </dl>
+
+        <form method="post" action="{% url 'perfil' %}?tab=perfil">
+            {% csrf_token %}
+            <div class="campo">
+                <label for="nombre">Nombre</label>
+                <input type="text" id="nombre" name="nombre" value="{{ user.first_name }}">
+            </div>
+            <div class="campo">
+                <label for="telefono">Teléfono</label>
+                <input type="text" id="telefono" name="telefono" value="{{ user.telefono }}">
+            </div>
+            <button type="submit" class="btn-panel">Guardar cambios</button>
+        </form>
+    </div>
+
+{% endif %}
+
+{% endblock %}

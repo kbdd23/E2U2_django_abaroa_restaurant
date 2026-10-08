@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Salón | Restaurante Abaroa{% endblock %}
+
+{% block content %}
+<section
+    class="salon-mesero"
+    id="salon-mesero"
+    data-csrf="{{ csrf_token }}"
+    data-url-mesas="{% url 'mesas_estado' %}"
+    data-url-tomar="{% url 'tomar_mesa' %}"
+    data-url-invitado="{% url 'sentar_invitado' %}"
+    data-url-cancelar-invitado="{% url 'cancelar_invitado' %}"
+    data-url-agregar="{% url 'orden_agregar' %}"
+    data-url-quitar="{% url 'orden_quitar' %}"
+    data-url-cerrar="{% url 'orden_cerrar' %}"
+>
+    <div class="section-header">
+        <h2>Salón</h2>
+        <p>Pulsa una mesa verde para tomar la cuenta. El mapa se actualiza solo cada 10 segundos.</p>
+    </div>
+
+    <div class="salon-toolbar">
+        <div class="leyenda-mesas">
+            <div class="leyenda-item">
+                <div class="leyenda-color libre"></div>
+                <span>Libre</span>
+            </div>
+            <div class="leyenda-item">
+                <div class="leyenda-color por-atender"></div>
+                <span>Con clientes, sin mesero</span>
+            </div>
+            <div class="leyenda-item">
+                <div class="leyenda-color atendida"></div>
+                <span>Tu mesa</span>
+            </div>
+            <div class="leyenda-item">
+                <div class="leyenda-color ajena"></div>
+                <span>Atendida por otro</span>
+            </div>
+        </div>
+        <p class="reloj-mesero">Actualizado <span id="reloj-mesero">{{ momento|time:"H:i:s" }}</span></p>
+    </div>
+
+    <p class="aviso-mesero" id="aviso-mesero" hidden></p>
+
+    <div class="grid-mesas-salon mapa-mesero" id="mapa-mesas">
+        {% for entrada in mapa %}
+            <button
+                type="button"
+                class="mesa-card mesa-{{ entrada.clase }}{% if entrada.mesa.es_grande %} mesa-card-grande{% endif %}"
+                data-mesa-numero="{{ entrada.mesa.numero }}"
+                aria-label="Mesa {{ entrada.mesa.numero }}"
+            >
+                <span class="mesa-card-numero">Mesa {{ entrada.mesa.numero }}</span>
+                {% if entrada.mesa.es_grande %}
+                    <span class="mesa-card-badge">Grande</span>
+                {% endif %}
+                <span class="mesa-card-meta">{{ entrada.mesa.capacidad }} personas · {{ entrada.mesa.ubicacion }}</span>
+                <span class="mesa-card-estado" data-estado>{{ entrada.etiqueta }}</span>
+            </button>
+        {% empty %}
+            <p class="sin-mesas">El salón está vacío por mantenimiento. Vuelve pronto.</p>
+        {% endfor %}
+    </div>
+</section>
+
+<!-- Drawer lateral: estado de la mesa, toma de la cuenta y carta -->
+<div class="drawer-overlay" id="drawer-overlay" hidden></div>
+<aside class="drawer-reserva" id="drawer-mesero" aria-hidden="true">
+    <div class="drawer-header">
+        <div>
+            <p class="drawer-eyebrow" id="drawer-eyebrow">Mesa</p>
+            <h3 class="drawer-titulo" id="drawer-titulo">—</h3>
+        </div>
+        <button type="button" class="drawer-cerrar" id="drawer-cerrar" aria-label="Cerrar panel">×</button>
+    </div>
+
+    <div class="drawer-cuerpo" id="drawer-cuerpo"><!-- render JS --></div>
+
+    <div class="drawer-pie">
+        <p class="drawer-resumen" id="drawer-resumen"></p>
+        <div class="drawer-acciones" id="drawer-acciones"><!-- render JS --></div>
+    </div>
+</aside>
+
+{{ items|json_script:"carta-items" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/mesero.js' %}" defer></script>
+{% endblock %}
