@@ -13,7 +13,7 @@ Con el env cargado la estructura se levanta con:
 python manage.py migrate
 ```
 
-#Roles y control de acceso
+# Roles y control de acceso
 
 El usuario hereda de `AbstractUser` y agrega el campo `rol` con tres valores: `cliente`, `mesero` y `admin`.
 
