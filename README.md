@@ -14,6 +14,7 @@ python manage.py migrate
 ```
 
 #Roles y control de acceso
+
 El usuario hereda de `AbstractUser` y agrega el campo `rol` con tres valores: `cliente`, `mesero` y `admin`.
 
 Cada rolo tiene su propio decorador en `panel/decorators.py` (`cliente_required`, `meser_required`, `admin_required`) de manera que si un usuario autenticado con el rol equivocado intenta entrar a una ruta que no debería este recibirá un `403`, prohibiendole accesos indebidos de forma explicita.
