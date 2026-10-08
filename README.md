@@ -37,7 +37,7 @@ Todas las bajas son con *soft-delete*: retirar un plato, mesa, cliente, mesero n
 # Django-admin
 Igualmente, creamos un superusuario y añadimos los modelos al django-admin.
 
-Cabe nombrar que crear un superusuario hace que este nazca con el rol='cliente' y nuestros decoradores de 'admin_required' exige rol=ADMIN asi que el superusuario servirá solo para /django-admin/ pero no para nuestro panel propio de administración.
+Cabe nombrar que crear un superusuario hace que este nazca con el `rol='cliente'` y nuestros decoradores de `'admin_required'` exige `rol=ADMIN` asi que el superusuario servirá solo para `/django-admin/` pero no para nuestro panel propio de administración.
 
 Para lograr que el superusuario sea compatible con nuestro panel de adminstración personalizado se debe cambiar su rol desde panel.User en django-admin o en su defecto cambiarlo con el comando:
 
